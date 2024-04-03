@@ -1,0 +1,168 @@
+BarRiser:
+
+Question-1: Calculate the cumulative sum of revenue for each product over time. Display the product name, order date, revenue and cumulative revenue.
+
+//Sample Data
++----------+------------+-------+
+
+|order_date|product_name|revenue|
++----------+------------+-------+
+|2022-01-01|   Product_A|  100.0|
+|2022-01-01|   Product_B|  150.0|
+|2022-01-02|   Product_A|  120.0|
+|2022-01-02|   Product_B|  200.0|
+|2022-01-03|   Product_A|   80.0|
+|2022-01-03|   Product_B|  120.0|
++----------+------------+-------+
+
+//Expected Output:
++----------+------------+-------+------------------+
+
+|order_date|product_name|revenue|cumulative_revenue|
++----------+------------+-------+------------------+
+|2022-01-01|   Product_A|  100.0|             100.0|
+|2022-01-02|   Product_A|  120.0|             220.0|
+|2022-01-03|   Product_A|   80.0|             300.0|
+|2022-01-01|   Product_B|  150.0|             150.0|
+|2022-01-02|   Product_B|  200.0|             350.0|
+|2022-01-03|   Product_B|  120.0|             470.0|
++----------+------------+-------+------------------+
+
+SELECT a.order_date,a.product_name, a. revenue, SUM(b.revenue) as cumulative_revenue
+FROM Products a
+LEFT JOIN Products b
+ON a.product_name = b.product_name and a.order_date >= b.order_date
+
+GROUP BY a.product_name, a.order_date, a.revenue
+
+//Expected Output:
++----------+------------+-------+------------------+
+
+|order_date|product_name|revenue|
++----------+------------+-------+------------------+
+|2022-01-02|   Product_A|  120.0|
+|2022-01-01|   Product_B|  150.0|
++----------+------------+-------+------------------+
+
+SELECT *,
+ROW_NUMBER() OVER (PARTITION BY product_name ORDER BY revenue DESC) as row_
+FROM Products
+WHERE row_ = 2
+
+text
+Hi Alice
+Hi Rahul
+Hi Ram
+How are you Alice
+
+Expected Output:
+Hi ->3
+Alice -> 2
+Rahul -> 1
+Ram -> 1
+How -> 1
+are -> 1
+you -> 1
+
+with open('file.txt') as f:
+words = []
+for i in f:
+for j in i.split():
+words.append(j)
+
+input: aabbcccdaaab
+output: a2b2c3d1a3b1
+
+input_ = 'aabbcccdaaab'
+output_ = ''
+list_ = list(input_)
+
+for i in range(0, len(list_)-1):
+counter = 1
+index = list_[i]
+if list_[i] == list_[i+1]:
+counter += 1
+else:
+output_ = output_ + index + str(counter)
+
+Social Media Analytics:
+
+Use Case:
+
+Design a data model for a social media analytics platform. The system should store information about users, posts, comments, likes, and user interactions. The company wants to analyze user engagement, popular posts, and comment trends.
+
+Requirements:
+
+Include tables for users, posts, comments, likes, and interactions.
+
+interactions=enagement=total comments + total likes
+
+Consider necessary columns for each table.
+
+Write a SQL query to retrieve the top 5 posts with the highest engagement.
+
+Table1:
+Users:
+USERID INT
+CREATEDAT TIMESTAMP
+UPDATEDAT TIMESTAMP
+
+Posts:
+POSTID INT
+USERID INT
+CREATEDAT TIMESTAMP
+UPDATEDAT TIMESTAMP
+
+INTERACTIONS:
+ID
+USERID
+POSTID
+INTERACTIONTYPE ('post', 'comment', 'like')
+JSON_META JSONTYPE
+CREATEDAT
+UPDATEDAT
+
+COMMENTS
+
+AGG_INTERACTIONS
+SELECT USERID, POSTID, COUNT(*) as cnt_
+FROM INTERACTIONS
+WHERE INTERACTIONTYPE IN ('comment', 'like')
+ORDER BY cnt_ DESC
+LIMIT 5
+
+ETL vs ELT
+
+1. Cost Affordibility
+2. Compute and Storage
+3. Can I do ETL independednt of the cloud. Let's say I use AWS, and I'm not doing small transformations via Kinesis, then Redshift might be better.
+4. How my data will be: is it always queryable, or I need blob storage for adhoc tasks?
+5. What all inbuilt functinalities I require?
+Like TASKS in Snowflake
+Materialised Views in Redshift
+LakeHouse: DataBricks
+6. How I want my compute to be? Columunar/NoSQL/etc.
+7. Data Ingestion
+8. Data Storgae
+9. Data Metadata if if's self served
+10. Access control and usability
+
+COPY FROM {s3_path} INTO {redshift_table}
+
+S3:
+id    message
+
+1. Please reach out to me on [bob@gmail.com](mailto:bob@gmail.com) and +1-123-1234-123
+2. Sure. Thanks [bob@gmail.com](mailto:bob@gmail.com)
+
+Redshift:
+id    message
+
+1. Please reach out to me on ###@gmail.com and +1-*******
+2. Sure. Thanks ###@gmail.com
+
+CSV -> S3 -> Redshift (copy)
+Airflow
+AWS Glue / Glue ETL
+
+Source S3 -->
