@@ -381,3 +381,33 @@ def merge(self, nums1, m, nums2, n):
             nums1[end_idx] = nums2[n-1]
             n-=1
             end_idx-=1
+
+
+#%%
+def get_rev_number(num_:int) -> int:
+    rev = 0
+    while num_ > 0:
+        rem = num_ % 10
+        rev = rev * 10 + rem
+        num_ //= 10
+    return rev 
+
+def get_reversed_number_one(num: int) -> int: 
+    abs_num = abs(num)
+    if num < 0:
+        flag = -1*get_rev_number(abs_num)
+    elif num > 0: 
+        flag = get_rev_number(abs_num)
+    else:
+        flag = 0 
+
+    
+    return flag 
+# %%
+def get_reversed_number_one(num: int) -> int: 
+    str_num = str(num) if num >= 0 else str(num)[1::]
+    if num >= 0:
+        return int(str_num[::-1])
+    if num < 0:
+        return -1*int(str_num[::-1])
+# %%
