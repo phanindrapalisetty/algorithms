@@ -502,3 +502,22 @@ def kidsWithCandies(candies, extraCandies):
                 res.append('false')
         return res
 # %%
+def find_maximum(numbers):
+    if not numbers:
+        return None  # Return None if the list is empty
+
+    left, right = 0, len(numbers) - 1
+
+    while left < right:
+        mid = (left + right) // 2
+        if numbers[mid] < numbers[mid + 1]:
+            left = mid + 1
+        else:
+            right = mid
+
+    return numbers[left]
+
+# Example usage
+numbers = [1, 3, 5, 7, 9, 8, 6, 4, 2]
+maximum = find_maximum(numbers)
+print("Maximum:", maximum)  # Output: 9
