@@ -561,4 +561,4 @@ def find_maximum(numbers):
 numbers = [1, 3, 5, 7, 9, 8, 6, 4, 2]
 maximum = find_maximum(numbers)
 print("Maximum:", maximum)  # Output: 9
->>>>>>> refs/remotes/origin/main
+
