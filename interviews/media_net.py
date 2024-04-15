@@ -411,6 +411,7 @@ def get_reversed_number_one(num: int) -> int:
     if num < 0:
         return -1*int(str_num[::-1])
 # %%
+
 def compress_string(s):
     if not s:
         return ""
@@ -449,3 +450,115 @@ def count_words(filename):
 # Test the function
 filename = 'file.txt'
 count_words(filename)
+
+#%%
+class Square:
+    def draw(self):
+        print(f'Inside Square::draw()')
+    def resize(self):
+        print(f'Inside Square::resize()')
+class Circle:
+    def draw(self):
+        print(f'Inside Circle::draw()')
+    def resize(self):
+        print(f'Inside Circle::resize()')
+class ShapeManager:
+    def _init_(self, shapes):
+        self._shapes = shapes
+    def manage(self):
+        for shape in self._shapes:
+            shape.draw()
+            shape. resize()
+if __name__ == '__main__':
+    shapes = [Square(), Circle()]
+    shape_manager = ShapeManager (shapes)
+    shape_manager.manage()
+# %%
+document = (20001, 'Petry', (101, 102), ['List', 'Some'])
+# %%
+document[-1].append('Poerty')
+# %%
+A = [6, 4, 7, 10, 11]
+B = [2, 4, 6, 8, 10]
+C = [x for x in A if x in B]
+print(C)
+# %%
+word1 = 'abc'
+word2 = 'pqrq'
+def mergeAlternately(word1: str, word2: str) -> str:
+    len1 = len(word1)
+    len2 = len(word2)
+    res = ''
+    i = 0
+    if len1 >= len2:
+        while i < len2:
+            res = res + word1[i] + word2[i]
+            i+=1
+        res = res + word1[i::]
+    else:
+        while i < len1:
+            res = res + word1[i] + word2[i]
+            i+=1
+        res = res + word2[i::]
+    return res
+
+def mergeAlternately(self, word1: str, word2: str) -> str:
+    result = ""
+    for i in range(0, min(len(word1), len(word2))):
+        result += word1[i]
+        result += word2[i]
+    if len(word1) > len(word2):
+        result += word1[len(word2):]
+    elif len(word1) < len(word2):
+        result += word2[len(word1):]
+    return result
+# %%
+word2 = 'ABABAB'
+word1 = 'ABAB'
+def gcdOfStrings(str1: str, str2: str) -> str:
+    if str1 + str2 != str2 + str1:
+        return ''
+
+    a = len(str1)
+    b = len(str2)
+
+    #Finding gcd
+    while b != 0:
+        a, b = b, a % b
+    return str2[:a]
+
+print(gcdOfStrings(word1, word2))
+# %%
+candies = [2,3,5,1,3]
+extraCandies = 3
+def kidsWithCandies(candies, extraCandies):
+        max_ = candies[0]
+        res = ['true']
+        for i in range(1, len(candies)):
+            if candies[i] + extraCandies > max_:
+                max_ = candies[i]
+                res.append('true')
+            else:
+                res.append('false')
+        return res
+# %%
+def find_maximum(numbers):
+    if not numbers:
+        return None  # Return None if the list is empty
+
+    left, right = 0, len(numbers) - 1
+
+    while left < right:
+        mid = (left + right) // 2
+        if numbers[mid] < numbers[mid + 1]:
+            left = mid + 1
+        else:
+            right = mid
+
+    return numbers[left]
+
+# Example usage
+numbers = [1, 3, 5, 7, 9, 8, 6, 4, 2]
+maximum = find_maximum(numbers)
+print("Maximum:", maximum)  # Output: 9
+>>>>>>> refs/remotes/origin/main
