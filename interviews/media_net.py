@@ -411,3 +411,41 @@ def get_reversed_number_one(num: int) -> int:
     if num < 0:
         return -1*int(str_num[::-1])
 # %%
+def compress_string(s):
+    if not s:
+        return ""
+
+    compressed = ""
+    count = 1
+
+    for i in range(1, len(s)):
+        if s[i] == s[i - 1]:
+            count += 1
+        else:
+            compressed += s[i - 1] + str(count)
+            count = 1
+
+    compressed += s[-1] + str(count)
+
+    return compressed
+
+# Test the function
+input_string = "aabbcccdaaabb"
+output_string = compress_string(input_string)
+print(output_string)
+# %%
+from collections import Counter
+
+def count_words(filename):
+    word_counts = Counter()
+    with open(filename, 'r') as file:
+        for line in file:
+            words = line.strip().split()
+            word_counts.update(words)
+    
+    for word, count in word_counts.items():
+        print(f"{word} -> {count}")
+
+# Test the function
+filename = 'file.txt'
+count_words(filename)
