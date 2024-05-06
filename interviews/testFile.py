@@ -24,3 +24,24 @@ for i in range(length):
 # %%
 print("i ==>", i, "j ==>", j, "k ==>", k, str_[index:index+maxLength])
 # %%
+[1, 2, 3].sum()
+# %%
+" Jon Doe".strip()
+# %%
+def som():
+    if not some():
+        return False 
+    return True
+
+
+
+def some():
+    if 1==1:
+        raise ValueError(1)
+    return True
+    
+
+
+        
+
+# %%
