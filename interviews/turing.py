@@ -94,5 +94,5 @@ def get_alternate_substrings(list_: List[int]):
 
         return output_, out_
 # %%
-isinstance('1', int)
+
 # %%
