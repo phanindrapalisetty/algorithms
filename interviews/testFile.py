@@ -40,8 +40,4 @@ def some():
         raise ValueError(1)
     return True
     
-
-
-        
-
 # %%
