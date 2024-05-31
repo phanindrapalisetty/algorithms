@@ -1,0 +1,32 @@
+1. Find subarray with given sum 
+2. Check if the given binary tree is a sum tree -- Easy 
+3. Remove comments from a C++ program -- Revise, and retry, not done perfectly
+4. 
+
+
+Medium: 29  | 10 
+Easy:   22  | 15
+Hard:   8   | 2 
+
+
+Easy:
+1. String Compression 
+2. Design Hashmap 
+3. Find first unique character 
+
+
+Medium: 
+1. Subarray with exact sum -- with hashmap/ two for loops
+2. Median of two sorted arrays 
+3. Find minimum in rotated sorted array
+4. Group anagrams 
+5. Best time to buy and sell stocks 1
+6. Best time to buy and sell stocks 2 
+7. Merge intervals
+6. Maximum subarray 
+
+
+
+Hard:
+1. Subarray with sum atleat K 
+2. Median of two sorted arrays 
