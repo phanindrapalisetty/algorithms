@@ -13,6 +13,7 @@ Easy:
 1. String Compression 
 2. Design Hashmap 
 3. Find first unique character 
+4. Valid Paranthesis -- Done 
 
 
 Medium: 
@@ -24,6 +25,9 @@ Medium:
 6. Best time to buy and sell stocks 2 
 7. Merge intervals
 6. Maximum subarray 
+7. Longest Substring without repeating characters
+8. 3Sum 
+9. Add two numbers, LinkedList -- Notr Undesrtood
 
 
 
