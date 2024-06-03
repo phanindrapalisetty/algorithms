@@ -10,8 +10,8 @@ Hard:   8   | 2
 
 
 Easy:
-1. String Compression 
-2. Design Hashmap 
+1. String Compression -- Review needed 
+2. Design Hashmap -- Review needed 
 3. Find first unique character 
 4. Valid Paranthesis -- Done 
 
@@ -20,17 +20,107 @@ Medium:
 1. Subarray with exact sum -- with hashmap/ two for loops
 2. Median of two sorted arrays 
 3. Find minimum in rotated sorted array
-4. Group anagrams 
+4. Group anagrams -- Easy 
 5. Best time to buy and sell stocks 1
 6. Best time to buy and sell stocks 2 
-7. Merge intervals
+7. Merge intervals -- Easy 
 6. Maximum subarray 
-7. Longest Substring without repeating characters
+7. Longest Substring without repeating characters -- BruteForce done; do for O(n) complexity.. 
 8. 3Sum 
-9. Add two numbers, LinkedList -- Notr Undesrtood
-
-
+9. Add two numbers, LinkedList -- Not Undesrtood
 
 Hard:
 1. Subarray with sum atleat K 
 2. Median of two sorted arrays 
+
+
+# def say_hello():
+#     print('Hello, World')
+
+# for i in range(5):
+#     say_hello()
+
+
+# Your previous Plain Text content is preserved below:
+
+# This is just a simple shared plaintext pad, with no execution capabilities.
+
+# When you know what language you'd like to use for your interview,
+# simply choose it from the dots menu on the tab, or add a new language
+# tab using the Languages button on the left.
+
+# You can also change the default language your pads are created with
+# in your account settings: https://app.coderpad.io/settings
+
+# Enjoy your interview!
+
+
+# Input - SQS 
+# 1. Keepin proper S3 structure: claimID/files
+#                                       /images 
+#                                       /ocr-results 
+#                                       /predictions 
+#                                       /annotations 
+# Output SQS1
+# 2. 
+
+
+
+# PrimaryTable 
+
+# MAT_VIEW 
+# 10 
+
+# [], {}, ()
+# {}, }{}, (}, [{]}, []{}
+
+input_ = "{}{{}{}"
+
+arr_ = [input_[0]] 
+map_dict = {
+    ")": "(",
+    "]": "[",
+    "}": "{"
+}
+valid = [] # valid = ['{}', '{}{}'] 
+str_ = ''
+for i in input_[1:]:
+    if i in map_dict.values():
+        arr_.append(i)
+        # str_ += i 
+    elif i in map_dict.keys():
+        if len(arr_) == 0:
+            print(0, 1)
+        if len(arr_) > 0 and map_dict[i] != arr_.pop():
+            print(0, 2) 
+        
+print(arr_)
+print(1 if len(arr_) == 0 else 0)
+
+
+
+valid = ['{}', '{}{}'] 
+
+len_ = [len(x) for x in valid] # [2, 4]
+max_len = max(len_) #4
+index_ = len_.index(max_len) #[2, 4].index(4)
+print(valid[index_])
+
+
+
+SQL questions: Easy 
+
+Questions on distributed databases: Partitioning, Indexing, 
+
+Employees:
+in 
+name 
+salary 
+department_id 
+
+How whill you partition? How to distribute? 
+What if one node fails, and data becomes stale? How to do replication? 
+
+How applications work across with distributed databases? 
+Finance: 
+Bonens to employees.. NOt to process them twice. 
