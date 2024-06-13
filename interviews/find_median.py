@@ -41,7 +41,6 @@ Approach:
 2. Find the kth smallest element in the list and return it will be the median, 
     where in `k` is `n//2` element. 
 3. Function `kth_smallest` recursively partitions and selects the pivot until the kth smallest element is found. 
-4. 
 """
 
 def partition(lst, low, high):
