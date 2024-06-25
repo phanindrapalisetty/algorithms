@@ -1,0 +1,3 @@
+1. Find the Kth largest (or) smallest number in an array
+2. Median for a large dataset -- Use above method. 
+3. Valid paranthesis -- Get the indices where the max length of paranthesis occur. 
