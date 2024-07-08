@@ -131,3 +131,11 @@ FROM Rides
 
 
 """
+
+
+"""
+Feedback: 
+* Call out all the obvious assumptions
+* Spark JOINs and BroadCasting and RDDs
+* Basic DSA and problem solving
+"""
