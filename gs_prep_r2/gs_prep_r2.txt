@@ -124,3 +124,5 @@ What if one node fails, and data becomes stale? How to do replication?
 How applications work across with distributed databases? 
 Finance: 
 Bonens to employees.. NOt to process them twice. 
+
+dummy test
