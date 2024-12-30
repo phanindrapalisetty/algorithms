@@ -562,3 +562,16 @@ numbers = [1, 3, 5, 7, 9, 8, 6, 4, 2]
 maximum = find_maximum(numbers)
 print("Maximum:", maximum)  # Output: 9
 
+#%%
+# Loop Health - R1
+
+
+# Given a pre-existing function in the codebase with the following signature 
+# "calculate(a: int, b: float, c: string) : string" , can you write a small wrapper around this function to cache the results in-memory. Given that calculate is kind of a static function meaning that given the same set a,b,c it's always guaranteed that the return value is the same.
+
+
+# CSV: 
+# Col A, B, C
+
+
+# Design a data pipeline for real-time and analytical purposes. 

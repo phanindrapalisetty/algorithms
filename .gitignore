@@ -127,6 +127,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+algorithms-venv/
 
 # Spyder project settings
 .spyderproject
@@ -161,3 +162,4 @@ cython_debug/
 
 DataDump/
 .txt
+*.DS_Store
