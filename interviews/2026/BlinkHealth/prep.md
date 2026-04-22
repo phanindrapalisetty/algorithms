@@ -717,3 +717,522 @@ for k, v in report.items():
 | `merge(..., suffixes=)` | Upsert / conflict resolution |
 | `or {}` on nullable dicts | Safe JSON flattening |
 | Schema set diff | `set(df.columns) - set(expected)` |
+
+
+
+# Advanced SQL: Analytical Thinking & Window Functions
+**Focus**: Problems that require window function composition, not just syntax recall  
+**Style**: The kind a DS interviewer asks to test how you *think* about data, not just write SQL
+
+---
+
+## Q1 — Running Revenue Share per SKU (Cumulative Distribution)
+
+**Difficulty**: Medium  
+**Concepts**: SUM() OVER, cumulative totals, percentage of total, ordering within partitions
+
+**Scenario**: You're a data engineer at a SaaS company. The finance team wants to understand which SKUs are driving the bulk of revenue — specifically, they want a running cumulative revenue share so they can identify the "80% revenue" SKUs (Pareto analysis).
+
+**Dataset**:
+```sql
+CREATE TABLE sku_revenue (
+    sku         TEXT,
+    month       DATE,
+    revenue     NUMERIC
+);
+
+INSERT INTO sku_revenue VALUES
+('APM',         '2024-01-01', 95000),
+('DataPlus',    '2024-01-01', 72000),
+('LogsPro',     '2024-01-01', 58000),
+('Infra',       '2024-01-01', 41000),
+('Synthetics',  '2024-01-01', 23000),
+('Browser',     '2024-01-01', 18000),
+('Mobile',      '2024-01-01', 9000),
+('Errors',      '2024-01-01', 4000);
+```
+
+**Task**: For the month of `2024-01-01`, return each SKU with:
+- `revenue`
+- `revenue_rank` (1 = highest revenue)
+- `pct_of_total` (this SKU's % share of total revenue)
+- `cumulative_pct` (running cumulative % ordered by revenue desc)
+- `is_pareto` — flag `'Y'` if the SKU falls within the top 80% cumulative revenue
+
+**Expected shape**:
+| sku | revenue | revenue_rank | pct_of_total | cumulative_pct | is_pareto |
+|---|---|---|---|---|---|
+| APM | 95000 | 1 | 29.4 | 29.4 | Y |
+| DataPlus | 72000 | 2 | 22.3 | 51.7 | Y |
+| ... | ... | ... | ... | ... | ... |
+
+**Hint**: You'll need a window SUM for total, a window SUM for cumulative, and a CASE for the flag. Think carefully about *when* the cumulative crosses 80% — the row that pushes it over should still be flagged Y.
+
+<details>
+<summary>Solution</summary>
+
+```sql
+WITH base AS (
+    SELECT
+        sku,
+        revenue,
+        RANK() OVER (ORDER BY revenue DESC) AS revenue_rank,
+        ROUND(
+            100.0 * revenue / SUM(revenue) OVER (),
+            1
+        ) AS pct_of_total,
+        ROUND(
+            100.0 * SUM(revenue) OVER (
+                ORDER BY revenue DESC
+                ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+            ) / SUM(revenue) OVER (),
+            1
+        ) AS cumulative_pct
+    FROM sku_revenue
+    WHERE month = '2024-01-01'
+)
+SELECT
+    sku,
+    revenue,
+    revenue_rank,
+    pct_of_total,
+    cumulative_pct,
+    -- the row that CROSSES 80% is still included (cumulative_pct >= 80 catches it)
+    CASE
+        WHEN cumulative_pct - pct_of_total < 80 THEN 'Y'
+        ELSE 'N'
+    END AS is_pareto
+FROM base
+ORDER BY revenue_rank;
+```
+
+**The subtle part**: `cumulative_pct - pct_of_total < 80` means "the cumulative *before* this row was under 80%", so the crossing row gets flagged Y. If you used `cumulative_pct <= 80` you'd miss the exact crossing row when it lands at exactly 80%.
+
+**What the interviewer is watching for**:
+- Correct `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW` frame
+- `SUM() OVER ()` with no ORDER BY for total (full partition sum)
+- Thinking about the boundary condition on the 80% flag — not just `<= 80`
+</details>
+
+---
+
+## Q2 — Session Detection (Sessionization)
+
+**Difficulty**: Hard  
+**Concepts**: LAG, conditional logic, cumulative SUM as session ID, gap detection
+
+**Scenario**: You have a table of user events with timestamps. A "session" is defined as a group of events from the same user where no two consecutive events are more than 30 minutes apart. Assign a session ID to each event and compute session-level stats.
+
+**Dataset**:
+```sql
+CREATE TABLE user_events (
+    user_id     INT,
+    event_type  TEXT,
+    event_time  TIMESTAMP
+);
+
+INSERT INTO user_events VALUES
+(1, 'page_view',  '2024-01-01 09:00:00'),
+(1, 'click',      '2024-01-01 09:10:00'),
+(1, 'purchase',   '2024-01-01 09:25:00'),
+(1, 'page_view',  '2024-01-01 10:30:00'),  -- 65 min gap → new session
+(1, 'click',      '2024-01-01 10:45:00'),
+(2, 'page_view',  '2024-01-01 08:00:00'),
+(2, 'click',      '2024-01-01 08:20:00'),
+(2, 'page_view',  '2024-01-01 09:05:00'),  -- 45 min gap → new session
+(2, 'purchase',   '2024-01-01 09:15:00'),
+(2, 'click',      '2024-01-01 09:20:00');
+```
+
+**Task — Part A**: Assign a `session_id` (can be a number per user, e.g. user 1 session 1, user 1 session 2) to each event row.
+
+**Task — Part B**: From the sessionized data, return session-level summary: `user_id`, `session_id`, `session_start`, `session_end`, `duration_minutes`, `event_count`, `converted` (Y if any event_type = 'purchase' in that session).
+
+<details>
+<summary>Solution</summary>
+
+```sql
+-- PART A: Assign session IDs
+WITH lagged AS (
+    SELECT
+        user_id,
+        event_type,
+        event_time,
+        LAG(event_time) OVER (
+            PARTITION BY user_id ORDER BY event_time
+        ) AS prev_event_time
+    FROM user_events
+),
+gap_flagged AS (
+    SELECT
+        *,
+        CASE
+            WHEN prev_event_time IS NULL THEN 1  -- first event = new session
+            WHEN EXTRACT(EPOCH FROM (event_time - prev_event_time)) / 60 > 30 THEN 1
+            ELSE 0
+        END AS is_new_session
+    FROM lagged
+),
+sessionized AS (
+    SELECT
+        *,
+        -- cumulative sum of new_session flags = session number per user
+        SUM(is_new_session) OVER (
+            PARTITION BY user_id ORDER BY event_time
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS session_id
+    FROM gap_flagged
+)
+SELECT user_id, event_type, event_time, session_id
+FROM sessionized
+ORDER BY user_id, event_time;
+
+
+-- PART B: Session-level summary
+WITH lagged AS (
+    SELECT *,
+        LAG(event_time) OVER (PARTITION BY user_id ORDER BY event_time) AS prev_event_time
+    FROM user_events
+),
+gap_flagged AS (
+    SELECT *,
+        CASE
+            WHEN prev_event_time IS NULL THEN 1
+            WHEN EXTRACT(EPOCH FROM (event_time - prev_event_time)) / 60 > 30 THEN 1
+            ELSE 0
+        END AS is_new_session
+    FROM lagged
+),
+sessionized AS (
+    SELECT *,
+        SUM(is_new_session) OVER (
+            PARTITION BY user_id ORDER BY event_time
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS session_id
+    FROM gap_flagged
+)
+SELECT
+    user_id,
+    session_id,
+    MIN(event_time) AS session_start,
+    MAX(event_time) AS session_end,
+    ROUND(
+        EXTRACT(EPOCH FROM MAX(event_time) - MIN(event_time)) / 60,
+        1
+    ) AS duration_minutes,
+    COUNT(*) AS event_count,
+    MAX(CASE WHEN event_type = 'purchase' THEN 'Y' ELSE 'N' END) AS converted
+FROM sessionized
+GROUP BY user_id, session_id
+ORDER BY user_id, session_id;
+```
+
+**The core trick**: `is_new_session` is 1 at every gap boundary, 0 otherwise. A cumulative SUM of this column increments exactly when a new session starts — giving you a session counter per user. This is the canonical sessionization pattern.
+
+**Follow-up the interviewer will ask**: "What if the 30-minute threshold is configurable?" → parameterize it. In dbt, this becomes a var: `{{ var('session_gap_minutes', 30) }}`. Shows you think about reusability.
+</details>
+
+---
+
+## Q3 — Month-over-Month Churn Detection
+
+**Difficulty**: Medium-Hard  
+**Concepts**: LAG, NULL handling, status transitions, CASE-based state machine
+
+**Scenario**: You have monthly subscription snapshots. A customer is considered **churned** in month M if they were active in month M-1 but have no record in month M. A customer is **reactivated** if they have no record in month M-1 but are active in month M (and were active before that).
+
+**Dataset**:
+```sql
+CREATE TABLE subscriptions (
+    customer_id  INT,
+    month        DATE,
+    plan         TEXT
+);
+
+INSERT INTO subscriptions VALUES
+(101, '2024-01-01', 'pro'),
+(101, '2024-02-01', 'pro'),
+(101, '2024-03-01', 'pro'),
+-- 101 churns in April
+(102, '2024-01-01', 'free'),
+(102, '2024-02-01', 'free'),
+-- 102 churns in March
+(102, '2024-04-01', 'pro'),   -- 102 reactivates in April
+(103, '2024-02-01', 'pro'),   -- 103 is a new customer in Feb
+(103, '2024-03-01', 'pro'),
+(103, '2024-04-01', 'pro');
+```
+
+**Task**: Generate a spine of all `customer_id × month` combinations (for all months a customer ever appeared), then classify each row as: `active`, `churned`, `reactivated`, or `new`.
+
+**Hint**: You'll need to generate a complete month spine per customer first — months with no record are the churn signal.
+
+<details>
+<summary>Solution</summary>
+
+```sql
+-- Step 1: Build a complete spine of customer × every possible month
+WITH all_months AS (
+    SELECT DISTINCT month FROM subscriptions
+),
+all_customers AS (
+    SELECT DISTINCT customer_id FROM subscriptions
+),
+spine AS (
+    SELECT c.customer_id, m.month
+    FROM all_customers c
+    CROSS JOIN all_months m
+),
+-- Step 2: Join actual subscription records onto the spine (NULL = no record that month)
+with_activity AS (
+    SELECT
+        s.customer_id,
+        s.month,
+        sub.plan,
+        CASE WHEN sub.plan IS NOT NULL THEN 1 ELSE 0 END AS is_active
+    FROM spine s
+    LEFT JOIN subscriptions sub
+           ON s.customer_id = sub.customer_id
+          AND s.month = sub.month
+),
+-- Step 3: Bring in prior month's activity using LAG
+with_lag AS (
+    SELECT
+        *,
+        LAG(is_active) OVER (
+            PARTITION BY customer_id ORDER BY month
+        ) AS prev_is_active
+    FROM with_activity
+),
+-- Step 4: Classify each row
+classified AS (
+    SELECT
+        customer_id,
+        month,
+        plan,
+        CASE
+            WHEN is_active = 1 AND prev_is_active IS NULL     THEN 'new'
+            WHEN is_active = 1 AND prev_is_active = 1         THEN 'active'
+            WHEN is_active = 1 AND prev_is_active = 0         THEN 'reactivated'
+            WHEN is_active = 0 AND prev_is_active = 1         THEN 'churned'
+            ELSE NULL  -- was inactive last month and this month — skip
+        END AS status
+    FROM with_lag
+)
+SELECT *
+FROM classified
+WHERE status IS NOT NULL
+ORDER BY customer_id, month;
+```
+
+**Why this pattern matters**: This is the foundation of SaaS revenue metrics — MRR movement (new, expansion, contraction, churn, reactivation). A DS interviewer will immediately recognize this as subscription analytics gold. Connects directly to your New Relic billing work.
+
+**What to say**: "In dbt, I'd model this as a snapshot (SCD Type 2) on the subscriptions table rather than computing it at query time — so the spine and lag logic is pre-baked into the snapshot model and this query becomes a simple filter on status."
+</details>
+
+---
+
+## Q4 — Detecting Anomalous Days Using Standard Deviation
+
+**Difficulty**: Medium-Hard  
+**Concepts**: AVG/STDDEV as window functions, z-score computation, statistical flagging
+
+**Scenario**: A data scientist asks you to flag days where revenue for any SKU was statistically anomalous — more than 2 standard deviations away from that SKU's mean daily revenue. This is a common ask for automated alerting pipelines.
+
+**Dataset**:
+```sql
+CREATE TABLE daily_revenue (
+    sku         TEXT,
+    date        DATE,
+    revenue     NUMERIC
+);
+
+INSERT INTO daily_revenue VALUES
+('APM', '2024-01-01', 9000),
+('APM', '2024-01-02', 9200),
+('APM', '2024-01-03', 9100),
+('APM', '2024-01-04', 9300),
+('APM', '2024-01-05', 14500),  -- spike
+('APM', '2024-01-06', 9000),
+('APM', '2024-01-07', 8800),
+('LogsPro', '2024-01-01', 3000),
+('LogsPro', '2024-01-02', 3100),
+('LogsPro', '2024-01-03', 3050),
+('LogsPro', '2024-01-04', 3200),
+('LogsPro', '2024-01-05', 3100),
+('LogsPro', '2024-01-06', 1200),  -- drop
+('LogsPro', '2024-01-07', 3000);
+```
+
+**Task**: Return all rows flagged as anomalous, with columns: `sku`, `date`, `revenue`, `mean_revenue`, `stddev_revenue`, `z_score`, `anomaly_direction` (`'spike'` or `'drop'`).
+
+<details>
+<summary>Solution</summary>
+
+```sql
+WITH stats AS (
+    SELECT
+        sku,
+        date,
+        revenue,
+        AVG(revenue) OVER (PARTITION BY sku)    AS mean_revenue,
+        STDDEV(revenue) OVER (PARTITION BY sku) AS stddev_revenue
+    FROM daily_revenue
+),
+z_scored AS (
+    SELECT
+        *,
+        ROUND(
+            (revenue - mean_revenue) / NULLIF(stddev_revenue, 0),
+            2
+        ) AS z_score
+    FROM stats
+)
+SELECT
+    sku,
+    date,
+    revenue,
+    ROUND(mean_revenue, 1)   AS mean_revenue,
+    ROUND(stddev_revenue, 1) AS stddev_revenue,
+    z_score,
+    CASE
+        WHEN z_score >  2 THEN 'spike'
+        WHEN z_score < -2 THEN 'drop'
+    END AS anomaly_direction
+FROM z_scored
+WHERE ABS(z_score) > 2
+ORDER BY sku, date;
+```
+
+**Key details**:
+- `NULLIF(stddev_revenue, 0)` prevents division by zero if all values are identical
+- `AVG/STDDEV OVER (PARTITION BY sku)` with no ORDER BY = whole-partition stats (not rolling)
+- Threshold of 2 is a parameter — in production you'd make this configurable
+
+**Follow-up the DS interviewer will almost certainly ask**: "Is population or sample standard deviation more appropriate here?" — `STDDEV` in most engines is sample stddev (divides by N-1). For a small window (7 days), sample stddev is more conservative and appropriate. `STDDEV_POP` divides by N. Know the difference.
+
+**Connect to your work**: "This is essentially what the Daily Explainer does — surfaces anomalous day-over-day changes. I'd extend this with a rolling window stddev (`ROWS BETWEEN 6 PRECEDING AND CURRENT ROW`) to make the baseline adaptive rather than static."
+</details>
+
+---
+
+## Q5 — Customer Reactivation Lag & Lifecycle Sequencing
+
+**Difficulty**: Hard  
+**Concepts**: Multiple window functions composed, lifecycle state transitions, LEAD + LAG together, conditional aggregation
+
+**Scenario**: You want to understand the full lifecycle of churned-and-reactivated customers: how long were they dormant, what plan did they return on, and did they churn again?
+
+**Dataset**:
+```sql
+CREATE TABLE customer_lifecycle (
+    customer_id  INT,
+    event_date   DATE,
+    event_type   TEXT,   -- 'subscribed', 'churned', 'reactivated'
+    plan         TEXT
+);
+
+INSERT INTO customer_lifecycle VALUES
+(101, '2023-06-01', 'subscribed',   'free'),
+(101, '2023-09-15', 'churned',      NULL),
+(101, '2024-01-10', 'reactivated',  'pro'),
+(101, '2024-05-20', 'churned',      NULL),
+(102, '2023-03-01', 'subscribed',   'pro'),
+(102, '2023-07-01', 'churned',      NULL),
+(102, '2023-10-15', 'reactivated',  'pro'),
+(103, '2023-01-01', 'subscribed',   'free'),
+(103, '2024-02-01', 'churned',      NULL);
+-- 103 has not reactivated
+```
+
+**Task**: For each customer who has ever reactivated, return:
+- `customer_id`
+- `churn_date` (the churn event just before reactivation)
+- `reactivation_date`
+- `dormant_days` (days between churn and reactivation)
+- `reactivation_plan`
+- `churned_again` — `'Y'` if they churned again after reactivation, `'N'` otherwise
+
+<details>
+<summary>Solution</summary>
+
+```sql
+WITH sequenced AS (
+    SELECT
+        customer_id,
+        event_date,
+        event_type,
+        plan,
+        -- look back to find the previous event
+        LAG(event_date)  OVER (PARTITION BY customer_id ORDER BY event_date) AS prev_event_date,
+        LAG(event_type)  OVER (PARTITION BY customer_id ORDER BY event_date) AS prev_event_type,
+        -- look forward to find the next event after reactivation
+        LEAD(event_date) OVER (PARTITION BY customer_id ORDER BY event_date) AS next_event_date,
+        LEAD(event_type) OVER (PARTITION BY customer_id ORDER BY event_date) AS next_event_type
+    FROM customer_lifecycle
+),
+reactivations AS (
+    SELECT
+        customer_id,
+        prev_event_date                              AS churn_date,
+        event_date                                   AS reactivation_date,
+        event_date - prev_event_date                 AS dormant_days,
+        plan                                         AS reactivation_plan,
+        CASE
+            WHEN next_event_type = 'churned' THEN 'Y'
+            ELSE 'N'
+        END                                          AS churned_again
+    FROM sequenced
+    WHERE event_type = 'reactivated'
+      AND prev_event_type = 'churned'  -- safety: ensure the prior event was indeed a churn
+)
+SELECT *
+FROM reactivations
+ORDER BY customer_id, reactivation_date;
+```
+
+**What makes this hard**: You need LAG and LEAD *simultaneously* on the same row — backward to find the churn date, forward to check if they churn again. Composing both in a single window pass is the elegant solution.
+
+**Edge cases to mention**:
+- What if there are two consecutive churns with no reactivation between? The `prev_event_type = 'churned'` guard handles it.
+- What if `event_date` has ties? Add a secondary sort key (e.g. `event_type`) or acknowledge the ambiguity.
+- Customer 103 correctly drops out — no `reactivated` event, so no row in output.
+
+**Connect to your work**: "This is the kind of lifecycle sequencing I'd model as a dbt snapshot with status columns — so the LAG/LEAD logic is computed once at snapshot time and downstream queries don't need to re-derive it."
+</details>
+
+---
+
+## Window Function Cheat Sheet
+
+| Function | What it does | Common use case |
+|---|---|---|
+| `ROW_NUMBER()` | Unique sequential rank, no ties | Dedup, first/last row per group |
+| `RANK()` | Rank with gaps on ties (1,1,3) | Leaderboards where ties skip positions |
+| `DENSE_RANK()` | Rank without gaps on ties (1,1,2) | Top-N filtering with ties |
+| `LAG(col, n)` | Value from n rows behind | Period-over-period, state transitions |
+| `LEAD(col, n)` | Value from n rows ahead | Churn detection, next-event analysis |
+| `FIRST_VALUE(col)` | First value in the window frame | First touch attribution |
+| `LAST_VALUE(col)` | Last value in the window frame | Needs `ROWS BETWEEN ... UNBOUNDED FOLLOWING` |
+| `SUM() OVER (ORDER BY ...)` | Running total | Cumulative revenue, session IDs |
+| `AVG/STDDEV OVER (PARTITION BY ...)` | Partition-level stats | Z-score, anomaly detection |
+| `NTILE(n)` | Divide rows into n buckets | Quartiles, decile analysis |
+
+## Frame Clause Reference
+
+```sql
+-- Default (when ORDER BY present): RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+-- Explicit running total:
+ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+
+-- Full partition (no ORDER BY needed, but explicit is clearer):
+ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+
+-- Rolling 7-row window:
+ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
+
+-- Time-based rolling (use RANGE, not ROWS):
+RANGE BETWEEN INTERVAL '7 days' PRECEDING AND CURRENT ROW
+```
+
+**ROWS vs RANGE**: `ROWS` counts physical rows. `RANGE` works on value ranges — if two rows have the same ORDER BY value, RANGE includes both in "current row". For most analytical work, `ROWS` is more predictable.
