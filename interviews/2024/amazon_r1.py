@@ -18,6 +18,15 @@ def compare(x, y):
         return 1
     else:
         return 0
+    
+from functools import cmp_to_key
+def largest_number(nums):
+    
+    str_nums = list(map(str, nums))
+    str_nums.sort(key=cmp_to_key(compare), reverse=True)
+    result = ''.join(str_nums)
+    
+    return str(int(result))  # handles edge case like [0, 0]
 
 # Sort numbers based on the comparator
 str_nums = sorted(str_nums, key=lambda x: (x*10)[:10], reverse=True)

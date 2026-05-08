@@ -567,7 +567,8 @@ print("Maximum:", maximum)  # Output: 9
 
 
 # Given a pre-existing function in the codebase with the following signature 
-# "calculate(a: int, b: float, c: string) : string" , can you write a small wrapper around this function to cache the results in-memory. Given that calculate is kind of a static function meaning that given the same set a,b,c it's always guaranteed that the return value is the same.
+# "calculate(a: int, b: float, c: string) : string" , can you write a small wrapper around this function to cache the results in-memory. 
+# Given that calculate is kind of a static function meaning that given the same set a,b,c it's always guaranteed that the return value is the same.
 
 
 # CSV: 

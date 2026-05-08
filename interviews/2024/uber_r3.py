@@ -33,7 +33,7 @@
 # # import pandas as pd
 
 # print('Hello')
-
+#%%
 A = [7,2,5,3,5,3]
 B = [7,2,5,4,6,3,5,3,3]
 
@@ -66,7 +66,7 @@ for i in counter_b:
 # print(counter_b)
 # print(sorted(result) [3, 4, 6]
 # print(result) [4, 6, 3]
-
+#%%
 """
 Feedback: Sorting part, how can point (d) can be used in sorting of elements in O(n) complexity.
 """
