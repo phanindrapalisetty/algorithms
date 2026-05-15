@@ -2,7 +2,7 @@
 
 **Tell me about a time you owned a critical data system. Walk me through it.**
 
-> I would like to talk about the New Consumption Metrics initiative which I’m currently owning at New Relic. It is a revenue forcasting model for the consumption across clients for New Relic and is consumed by the finance, product analytics and sales stakeholders including the CXOs. Basically NCM is a monthly revenue forcasting based on actual consumed MTD quantities and forecasting for the remaining of the month using rolling 28 day averages to get thru the estimated quantities being consumed by the client for the entire month for all the unit of measures and walking these quantities through a pricing mechanism to get the dollar value for all types of tiered/flat/ and various other buying programs. 
+> I would like to talk about the New Consumption Metrics initiative which I'm currently owning at New Relic. It is a revenue forcasting model for the consumption across clients for New Relic and is consumed by the finance, product analytics and sales stakeholders including the CXOs. Basically NCM is a monthly revenue forcasting based on actual consumed MTD quantities and forecasting for the remaining of the month using rolling 28 day averages to get thru the estimated quantities being consumed by the client for the entire month for all the unit of measures and walking these quantities through a pricing mechanism to get the dollar value for all types of tiered/flat/ and various other buying programs. 
 
 > The initiative involves using mediallian architechture to build raw, intermediate, mart, and reporting layers for the NCM metric. This is uses dbt, snowflake as core tech stack with airflow being used for orchestration. The project involves several analytical models like contract-to-date, period-to-date, savings plan depletion being developed for the use of stakeholders apart from the main NCM data model. 
 
@@ -41,3 +41,7 @@
 ## Document Digisation Story
 
 **Tell me about a time you built something from scratch with no clear requirements. How did you approach it?**
+
+
+**Tell me about yourslef**
+> I'm a Data Engineer with around 5 years of experience, currently at New Relic where I own the consumption metrics pipeline — a revenue forecasting system that processes around $85M in monthly revenue across 18,000 accounts. My work sits at the intersection of data engineering and analytics engineering — I build the pipelines but I also own the business logic, the data models, and the stakeholder-facing outputs. Before New Relic I was at MediBuddy where I built the entire Redshift data warehouse from scratch, which eventually underpinned their CAC/LTV models and investor reporting. More recently I've been expanding into AI — I built an agentic pipeline that generates natural language revenue insights for leadership, and I've shipped an open source data querying tool called Quartz. I'm looking for a role where I can operate at that same intersection of scale, business impact, and modern data tooling — which is what drew me to Uber.
