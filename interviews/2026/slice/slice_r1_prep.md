@@ -161,3 +161,4 @@ Key principle:
 Storage engine → query pattern → model design
 Same metric = different physical model per engine
 ```
+
